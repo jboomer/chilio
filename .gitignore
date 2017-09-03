@@ -1,0 +1,15 @@
+.config
+*.o
+*.pyc
+
+# Example project files
+uc-code/sdkconfig
+uc-code/sdkconfig.old
+uc-code/build
+
+#Doc build artifacts
+docs/_build/
+docs/doxygen-warning-log.txt
+docs/sphinx-warning-log.txt
+docs/xml/
+docs/man/
