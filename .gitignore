@@ -1,6 +1,7 @@
 .config
 *.o
 *.pyc
+*.swp
 
 # Example project files
 uc-code/sdkconfig
@@ -13,3 +14,6 @@ docs/doxygen-warning-log.txt
 docs/sphinx-warning-log.txt
 docs/xml/
 docs/man/
+
+# venv
+webapp/chilio-venv/*

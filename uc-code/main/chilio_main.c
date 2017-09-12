@@ -22,7 +22,7 @@
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
 static EventGroupHandle_t wifi_event_group;
 
-static const char* TAG = "plantio.main";
+static const char* TAG = "chilio.main";
 
 /* MQTT callbacks */
 static bool mqtt_connect_cb(mqtt_client* client
