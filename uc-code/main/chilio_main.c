@@ -25,16 +25,16 @@ static EventGroupHandle_t wifi_event_group;
 static const char* TAG = "chilio.main";
 
 /* MQTT callbacks */
-static bool mqtt_connect_cb(mqtt_client* client
-                          , mqtt_event_data_t* event_data);
-static bool mqtt_disconnect_cb(mqtt_client* client
+static void mqtt_connect_cb(mqtt_client* client
+                            , mqtt_event_data_t* event_data);
+static void mqtt_disconnect_cb(mqtt_client* client
                                , mqtt_event_data_t* event_data);
-static bool mqtt_subscribe_cb(mqtt_client* client
+static void mqtt_subscribe_cb(mqtt_client* client
                               , mqtt_event_data_t* event_data);
-static bool mqtt_publish_cb(mqtt_client* client
+static void mqtt_publish_cb(mqtt_client* client
                             , mqtt_event_data_t* event_data);
-static bool mqtt_data_cb(mqtt_client* client
-                            , mqtt_event_data_t* event_data);
+static void mqtt_data_cb(mqtt_client* client
+                         , mqtt_event_data_t* event_data);
 
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event);
 static void initialise_wifi(void);
@@ -59,9 +59,9 @@ static mqtt_settings MQTTSettings = {
     .lwt_retain = 0,
     .connected_cb = mqtt_connect_cb,
     .disconnected_cb = mqtt_disconnect_cb,
-    .subscribe_cb = mqtt_,
-    .publish_cb = publish_cb,
-    .data_cb = data_cb
+    .subscribe_cb = mqtt_subscribe_cb,
+    .publish_cb = mqtt_publish_cb,
+    .data_cb = mqtt_data_cb
 };
 
 /* The event group allows multiple bits for each event,
@@ -69,35 +69,33 @@ static mqtt_settings MQTTSettings = {
    to the AP with an IP? */
 const int CONNECTED_BIT = BIT0;
 
-/* Constants that aren't configurable in menuconfig */
-#define ADC1_TEST_CHANNEL (ADC1_CHANNEL_6)
 
 
-static bool mqtt_connect_cb(mqtt_client* client
+static void mqtt_connect_cb(mqtt_client* client
                           , mqtt_event_data_t* event_data)
 {
-    //TODO: Start task pub ADC
-    xTaskCreate(&pub_adc_task, "pub_adc_task", 4096, NULL, 3, NULL);
+    ESP_LOGI(TAG, "MQTT Connect callback"); 
+    xTaskCreate(&pub_adc_task, "pub_adc_task", 4096, client, 3, NULL);
 }
 
-static bool mqtt_disconnect_cb(mqtt_client* client
+static void mqtt_disconnect_cb(mqtt_client* client
                                , mqtt_event_data_t* event_data)
 {
     //TODO: Stop task ADC
 }
 
-static bool mqtt_subscribe_cb(mqtt_client* client
+static void mqtt_subscribe_cb(mqtt_client* client
                               , mqtt_event_data_t* event_data)
 {
     ESP_LOGD(TAG, "Subscribed client %p", client);
 }
 
-static bool mqtt_publish_cb(mqtt_client* client
+static void mqtt_publish_cb(mqtt_client* client
                             , mqtt_event_data_t* event_data)
 {
 }
 
-static bool mqtt_data_cb(mqtt_client* client
+static void mqtt_data_cb(mqtt_client* client
                             , mqtt_event_data_t* event_data)
 {
 }
@@ -118,8 +116,8 @@ static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
     case SYSTEM_EVENT_STA_DISCONNECTED:
         /* This is a workaround as ESP32 WiFi libs don't currently
            auto-reassociate. */
-        esp_wifi_connect();
         mqtt_stop();
+        esp_wifi_connect();
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
         break;
     default:
@@ -130,7 +128,26 @@ static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
 
 static void pub_adc_task(void* pvParameter)
 {
-    // TODO: Read ADC, publish value, sleep
+
+    mqtt_client* client = (mqtt_client*)pvParameter;
+    const TickType_t xTicksSecond = pdMS_TO_TICKS( 1000 );
+    char buffer[10] = {0};
+
+    while(1) {
+        int val = adc1_get_raw(ADC1_CHANNEL_6);
+        int nchars = snprintf(buffer, 9, "%d", val);
+
+        if (nchars < 0) {
+            ESP_LOGE(TAG, "Error writing to buffer");
+        }
+        
+        ESP_LOGD(TAG, "Publish string %s", buffer);
+
+
+        mqtt_publish(client, "/test", buffer, nchars, 0, 0);
+
+        vTaskDelay(xTicksSecond);
+    }
 }
 
 static void initialise_wifi(void)
@@ -156,7 +173,7 @@ static void initialise_wifi(void)
 static void initialize_adc(void)
 {
     adc1_config_width(ADC_WIDTH_12Bit);
-    adc1_config_channel_atten(ADC1_TEST_CHANNEL, ADC_ATTEN_11db);
+    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_11db);
 }
 
 

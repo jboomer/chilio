@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <title> ChilIO Webapp </title>
+    </head>
+    <body>
+        <table>
+        {% for sample in samples %}
+        <tr>
+            <th>{{ sample.time }}</th>
+            <th>{{ sample.value }}</th>
+        </tr>
+        {% endfor %}
+        </table>
+    </body>
+
+</html>
