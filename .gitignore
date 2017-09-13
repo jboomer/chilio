@@ -2,6 +2,8 @@
 *.o
 *.pyc
 *.swp
+tags
+cscope.out
 
 # Example project files
 uc-code/sdkconfig
