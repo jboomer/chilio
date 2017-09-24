@@ -6,11 +6,42 @@
         <table>
         {% for sample in samples %}
         <tr>
-            <th>{{ sample.time }}</th>
+            <th>{{ sample.tstring }}</th>
             <th>{{ sample.value }}</th>
         </tr>
         {% endfor %}
         </table>
-    </body>
+        <canvas id="plotSensor" width="400" height="400"></canvas>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.0/Chart.bundle.min.js"></script>
+    <script>
+        var ctx = document.getElementById("plotSensor").getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: "scatter",
+            data: {
+                datasets: [{
+                    label: "Moisture",
+                    data: [
+                        {% for sample in samples %}
+                        {x: new Date( {{ sample.tmilliseconds }} ), y: {{ sample.value }} },
+                        {% endfor %}
+                    ],
+                    fill: false,
+                    showLine: true,
+                }]
+            },
+            options: {
+                scales: {
+                    xAxes: [{
+                        type: "time",
+                        display: true,
+                        time: {
+                            unit: 'second'
+                        }
+                    }]
 
+                }
+            }
+        });
+    </script>
+    </body>
 </html>
