@@ -5,6 +5,9 @@
 tags
 cscope.out
 
+# Databases
+*.db
+
 # Example project files
 uc-code/sdkconfig
 uc-code/sdkconfig.old

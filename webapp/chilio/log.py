@@ -1,0 +1,19 @@
+import logging
+
+mainlog = logging.getLogger('chilio')
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
+ch.setFormatter(formatter)
+mainlog.addHandler(ch)
+
+DEBUG = logging.DEBUG
+INFO = logging.INFO
+WARN = logging.WARN
+ERR = logging.ERROR
+CRIT = logging.CRITICAL
+
+
+
+def get_logger(name):
+    return logging.getLogger('chilio.' + name)
