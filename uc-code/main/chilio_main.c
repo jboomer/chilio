@@ -135,7 +135,7 @@ static void pub_adc_task(void* pvParameter)
 
     while(1) {
         int val = adc1_get_raw(ADC1_CHANNEL_6);
-        int nchars = snprintf(buffer, 9, "{value:%d}", val);
+        int nchars = snprintf(buffer, 9, "{\"id\":0,\"value\":%d}", val);
 
         if (nchars < 0) {
             ESP_LOGE(TAG, "Error writing to buffer");
@@ -143,7 +143,7 @@ static void pub_adc_task(void* pvParameter)
         
         ESP_LOGD(TAG, "Publish string %s", buffer);
 
-        mqtt_publish(client, "chilio/moist/0", buffer, nchars, 0, 0);
+        mqtt_publish(client, "chilio/sensorvals", buffer, nchars, 0, 0);
 
         vTaskDelay(xTicksSecond);
     }

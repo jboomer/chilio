@@ -5,13 +5,12 @@ from chilio.app import app
 from flask import render_template
 from flask import g as flask_global
 
-DATABASE = 'test.db'
-
 def get_db():
     """ DB Connection singleton """
     db = getattr(flask_global, '_database', None)
     if db is None:
-        db = flask_global._database = sqlite3.connect(DATABASE)
+        db = flask_global._database = sqlite3.connect(
+        app.config['DATABASE_URI'])
         db.row_factory = sqlite3.Row
     return db
 
