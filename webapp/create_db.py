@@ -11,6 +11,8 @@ def main():
     if not os.path.isdir(directory):
         print('Creating directory {dir}'.format(dir=directory))
         os.mkdir(directory)
+    else:
+        print('Directory already exists')
 
     db_file = os.path.join(directory, 'db.sqlite')
 
@@ -21,6 +23,8 @@ def main():
                 (SENSORID INT NOT NULL, 
                 TIME INT NOT NULL, 
                 VALUE INT NOT NULL)''')
+    else:
+        print('Database file already exists')
 
 
 if __name__ == '__main__':
