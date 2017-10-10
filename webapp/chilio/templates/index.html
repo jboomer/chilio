@@ -1,42 +1,27 @@
 {% extends "base.html" %}
 {% block title %} Home {% endblock %}
 {% block body %}
-    <canvas id="plotSensor" width="400" height="400"></canvas>
+    <h1> Plot of sensor data </h1>
+    <button type="button">Update</button>
+    <div class="plot-container" style="position: relative; height:40vh; width:80vw">
+        <canvas id="plotSensor" width="200" height="150"></canvas>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.0/Chart.bundle.min.js"></script>
-    <script>
+    <script type="text/javascript">
         var samples = {{ samples | tojson }} ;
         var data = [];
         samples.forEach(
             function (elem, index) {
                 var datapoint = 
                     {x: new Date(elem.tmilliseconds), y: elem.value};
-                console.log(datapoint)
                 data.push(datapoint)
 
         });
-        var ctx = document.getElementById("plotSensor").getContext('2d');
-        var myChart = new Chart(ctx, {
-            type: "scatter",
-            data: {
-                datasets: [{
-                    label: "Moisture",
-                    data: data,
-                    fill: false,
-                    showLine: true,
-                }]
-            },
-            options: {
-                scales: {
-                    xAxes: [{
-                        type: "time",
-                        display: true,
-                        time: {
-                            unit: 'second'
-                        }
-                    }]
-
-                }
-            }
-        });
     </script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/main.js') }}"></script>
+
 {% endblock %}

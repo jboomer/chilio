@@ -1,6 +1,7 @@
 import datetime
 import sqlite3
 import time
+import json
 from chilio.app import app
 from flask import render_template
 from flask import g as flask_global
@@ -35,7 +36,7 @@ def close_connection(exception):
 @app.route('/')
 @app.route('/index')
 def index():
-    results = query_db('SELECT * FROM sensorvals;')
+    results = query_db('SELECT time,value FROM sensorvals')
     samples = [{'tmilliseconds' : row['time'] * 1000
               , 'value' : row['value']
               , 'tstring' : time.strftime('%Y-%m-%d %H:%M:%S'
@@ -43,3 +44,16 @@ def index():
                     for row in results]
 
     return render_template('index.html', samples=samples)
+
+# API routes
+@app.route('/_api/sensorvals/<int:sensorid>')
+def get_sensorvals(sensorid):
+    # TODO: Get from the last 24 hours or something?
+
+    results = query_db('SELECT time,value FROM sensorvals '
+                        + 'WHERE sensorid=?', args=(sensorid,))
+    resp = [{'tmilliseconds' : row['time'] * 1000
+           , 'value' : row['value']}
+                for row in results]
+
+    return json.dumps(resp)
