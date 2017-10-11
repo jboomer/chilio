@@ -76,6 +76,8 @@ flags = [
 '/home/jasper/workspace/esp/esp-idf/components/espcoredump/include',
 '-I',
 '/home/jasper/workspace/esp/esp-idf/components/freertos/include',
+'-I',
+'/home/jasper/workspace/esp/esp-idf/components/json/include',
 ]
 
 
