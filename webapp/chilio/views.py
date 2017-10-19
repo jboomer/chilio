@@ -3,7 +3,7 @@ import sqlite3
 import time
 import json
 from chilio.app import app
-from flask import render_template
+from flask import render_template, jsonify, request
 from flask import g as flask_global
 
 def get_db():
@@ -12,8 +12,14 @@ def get_db():
     if db is None:
         db = flask_global._database = sqlite3.connect(
         app.config['DATABASE_URI'])
-        db.row_factory = sqlite3.Row
+        db.row_factory = dict_factory
     return db
+
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
 
 def query_db(query, args=(), one=False):
     """ Execute single query 
@@ -36,24 +42,18 @@ def close_connection(exception):
 @app.route('/')
 @app.route('/index')
 def index():
-    results = query_db('SELECT time,value FROM sensorvals')
-    samples = [{'tmilliseconds' : row['time'] * 1000
-              , 'value' : row['value']
-              , 'tstring' : time.strftime('%Y-%m-%d %H:%M:%S'
-                                          , time.localtime(row['time']))}
-                    for row in results]
+    results = query_db('SELECT time,value FROM sensorvals WHERE sensorid=0')
 
-    return render_template('index.html', samples=samples)
+    return render_template('index.html', samples=results)
 
 # API routes
-@app.route('/_api/sensorvals/<int:sensorid>')
-def get_sensorvals(sensorid):
+@app.route('/_api/sensorvals/')
+def get_sensorvals():
     # TODO: Get from the last 24 hours or something?
 
-    results = query_db('SELECT time,value FROM sensorvals '
-                        + 'WHERE sensorid=?', args=(sensorid,))
-    resp = [{'tmilliseconds' : row['time'] * 1000
-           , 'value' : row['value']}
-                for row in results]
+    sensorid = request.args.get('sensorid')
 
-    return json.dumps(resp)
+    results = query_db('SELECT * FROM sensorvals '
+                        + 'WHERE sensorid=? '
+                        + ' ORDER BY time', args=(sensorid,))
+    return jsonify(results)
