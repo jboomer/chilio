@@ -7,7 +7,7 @@ import json
 import sqlite3
 import time
 
-MYIP = '192.168.2.4'
+MYIP = '192.168.2.19'
 
 log = chilio.log.get_logger('subscribe')
 log.setLevel(chilio.log.DEBUG)

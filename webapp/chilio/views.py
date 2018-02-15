@@ -57,3 +57,9 @@ def get_sensorvals():
                         + 'WHERE sensorid=? '
                         + ' ORDER BY time', args=(sensorid,))
     return jsonify(results)
+
+@app.route('/_api/sensors/')
+def get_sensors():
+
+    return jsonify(query_db('SELECT * FROM sensors'))
+    
