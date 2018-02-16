@@ -16,4 +16,4 @@ void chilio_mqtt_stop(void);
  * @param sensorid
  * @param val
  */
-void chilio_mqtt_publish_sensorval(int sensorid, int val);
+void chilio_mqtt_publish_sensorval(int sensorid, float val);

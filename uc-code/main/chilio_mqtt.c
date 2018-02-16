@@ -25,7 +25,7 @@ static void mqtt_data_cb(mqtt_client* client
 
 /* Settings object, is not copied in mqtt component! */
 static mqtt_settings m_settings = {
-    .host = "192.168.2.4",
+    .host = "192.168.2.19",
 #if CONFIG_MQTT_SECURITY_ON
     .port = 8883, // encrypted
 #else
@@ -61,7 +61,7 @@ void chilio_mqtt_stop()
     mqtt_stop();
 }
 
-void chilio_mqtt_publish_sensorval(int sensorid, int val)
+void chilio_mqtt_publish_sensorval(int sensorid, float val)
 {
 
     if (m_connected) {
@@ -72,6 +72,9 @@ void chilio_mqtt_publish_sensorval(int sensorid, int val)
         cJSON_AddNumberToObject(pubObj, "value", val);
 
         char* mesg = cJSON_Print(pubObj);
+
+        ESP_LOGD(TAG, "Publish : %s\n", mesg);
+
         mqtt_publish(m_client, "chilio/sensorvals", mesg, strlen(mesg), 0, 0);
 
         free(mesg);

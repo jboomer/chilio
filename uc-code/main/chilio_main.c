@@ -20,6 +20,10 @@
 
 #include "chilio_mqtt.h"
 
+/* Number of point to collect before sending data */
+#define AVERAGE_POINTS 60
+static int datapoints[AVERAGE_POINTS] = {0};
+static int dpindex = 0;
 
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
 static EventGroupHandle_t wifi_event_group;
@@ -29,6 +33,8 @@ static const char* TAG = "chilio.main";
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event);
 static void initialise_wifi(void);
 static void initialize_adc(void);
+static void update_datapoint(int value);
+static float get_average(void);
 static void pub_adc_task(void* pvParameter);
 
 /* The event group allows multiple bits for each event,
@@ -73,10 +79,34 @@ static void pub_adc_task(void* pvParameter)
 
         ESP_LOGD(TAG, "Read value %d", val);
 
-        chilio_mqtt_publish_sensorval(0, val);
+        update_datapoint(val);
+
+        if (dpindex >= AVERAGE_POINTS) {
+
+            dpindex = 0;
+
+            chilio_mqtt_publish_sensorval(0, get_average());
+        }
 
         vTaskDelay(xTicksSecond);
     }
+}
+
+static float get_average(void)
+{
+    float average = 0;
+
+    for (int i = 0; i < AVERAGE_POINTS; i++) {
+        average += ((float)(datapoints[i])) / AVERAGE_POINTS;
+    }
+
+    return average;
+}
+
+static void update_datapoint(int value)
+{
+    datapoints[dpindex] = value;
+    dpindex++;
 }
 
 static void initialise_wifi(void)
