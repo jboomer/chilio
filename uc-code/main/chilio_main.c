@@ -19,6 +19,7 @@
 #include "driver/adc.h"
 
 #include "chilio_mqtt.h"
+#include "chilio_adc.h"
 
 /* Number of point to collect before sending data */
 #define AVERAGE_POINTS 60
@@ -32,17 +33,14 @@ static const char* TAG = "chilio.main";
 
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event);
 static void initialise_wifi(void);
-static void initialize_adc(void);
 static void update_datapoint(int value);
 static float get_average(void);
-static void pub_adc_task(void* pvParameter);
+static void read_sensor_task(void* pvParameter);
 
 /* The event group allows multiple bits for each event,
    but we only care about one event - are we connected
    to the AP with an IP? */
 const int CONNECTED_BIT = BIT0;
-
-
 
 
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
@@ -69,19 +67,21 @@ static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
     return ESP_OK;
 }
 
-static void pub_adc_task(void* pvParameter)
+static void read_sensor_task(void* pvParameter)
 {
 
     const TickType_t xTicksSecond = pdMS_TO_TICKS( 1000 );
 
     while(1) {
-        int val = adc1_get_raw(ADC1_CHANNEL_6);
+        int val = chilio_adc_get_raw(0);
 
         ESP_LOGD(TAG, "Read value %d", val);
 
         update_datapoint(val);
 
         if (dpindex >= AVERAGE_POINTS) {
+
+            // TODO: Publish event instead
 
             dpindex = 0;
 
@@ -105,6 +105,7 @@ static float get_average(void)
 
 static void update_datapoint(int value)
 {
+    // TODO: Make circular buffer for moving average
     datapoints[dpindex] = value;
     dpindex++;
 }
@@ -129,17 +130,11 @@ static void initialise_wifi(void)
     ESP_ERROR_CHECK( esp_wifi_start() );
 }
 
-static void initialize_adc(void)
-{
-    adc1_config_width(ADC_WIDTH_12Bit);
-    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_11db);
-}
-
 void app_main()
 {
     ESP_ERROR_CHECK( nvs_flash_init() );
-    initialize_adc();
+    chilio_adc_init();
     initialise_wifi();
 
-    xTaskCreate(&pub_adc_task, "pub_adc_task", 4096, NULL, 3, NULL);
+    xTaskCreate(&read_sensor_task, "read_sensor_task", 4096, NULL, 3, NULL);
 }
