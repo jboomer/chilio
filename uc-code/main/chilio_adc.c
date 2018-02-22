@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "driver/gpio.h"
 #include "driver/adc.h"
 
@@ -11,11 +12,14 @@
 #define N_DATAPOINTS 64
 
 struct SensorReading {
-    uint16_t datapoints[N_DATAPOINTS];
-    size_t   index;
-    float    average;
-    bool     initialized;
-    bool     update;
+
+    uint16_t          datapoints[N_DATAPOINTS];
+    size_t            index;
+    float             average;
+    SemaphoreHandle_t avgMutex;
+    bool              initialized;
+    bool              update;
+
 };
  
 
@@ -31,6 +35,14 @@ void chilio_adc_init()
     adc1_config_width(ADC_WIDTH_10Bit);
     adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_11db);
 
+    for (int i = 0; i < MAX_CHANNELS; i++) {
+        m_sensorVals[i].avgMutex = xSemaphoreCreateMutex();
+
+        if (! m_sensorVals[i].avgMutex) {
+            ESP_LOGE(TAG, "Could not create mutex for channel %d\n", i);
+        }
+    }
+
 }
 
 CErr chilio_get_average(uint8_t channel, float* val)
@@ -39,9 +51,12 @@ CErr chilio_get_average(uint8_t channel, float* val)
 
    if (channel < MAX_CHANNELS)
    {
-       // TODO: Mutex
        if (m_sensorVals[channel].initialized) {
+           xSemaphoreTake(m_sensorVals[channel].avgMutex, portMAX_DELAY);
+
            *val = m_sensorVals[channel].average;
+
+           xSemaphoreGive(m_sensorVals[channel].avgMutex);
        } else {
            ret = CHILIO_ERR_EGAIN;
        }
@@ -128,5 +143,10 @@ static void update_average(uint8_t channel)
         }
     }
 
+
+    xSemaphoreTake(m_sensorVals[channel].avgMutex, portMAX_DELAY);
+
     m_sensorVals[channel].average = average;
+
+    xSemaphoreGive(m_sensorVals[channel].avgMutex);
 }
