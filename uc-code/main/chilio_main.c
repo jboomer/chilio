@@ -21,10 +21,6 @@
 #include "chilio_mqtt.h"
 #include "chilio_adc.h"
 
-/* Number of point to collect before sending data */
-#define AVERAGE_POINTS 60
-static int datapoints[AVERAGE_POINTS] = {0};
-static int dpindex = 0;
 
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
 static EventGroupHandle_t wifi_event_group;
@@ -33,9 +29,6 @@ static const char* TAG = "chilio.main";
 
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event);
 static void initialise_wifi(void);
-static void update_datapoint(int value);
-static float get_average(void);
-static void read_sensor_task(void* pvParameter);
 
 /* The event group allows multiple bits for each event,
    but we only care about one event - are we connected
@@ -67,49 +60,6 @@ static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
     return ESP_OK;
 }
 
-static void read_sensor_task(void* pvParameter)
-{
-
-    const TickType_t xTicksSecond = pdMS_TO_TICKS( 1000 );
-
-    while(1) {
-        int val = chilio_adc_get_raw(0);
-
-        ESP_LOGD(TAG, "Read value %d", val);
-
-        update_datapoint(val);
-
-        if (dpindex >= AVERAGE_POINTS) {
-
-            // TODO: Publish event instead
-
-            dpindex = 0;
-
-            chilio_mqtt_publish_sensorval(0, get_average());
-        }
-
-        vTaskDelay(xTicksSecond);
-    }
-}
-
-static float get_average(void)
-{
-    float average = 0;
-
-    for (int i = 0; i < AVERAGE_POINTS; i++) {
-        average += ((float)(datapoints[i])) / AVERAGE_POINTS;
-    }
-
-    return average;
-}
-
-static void update_datapoint(int value)
-{
-    // TODO: Make circular buffer for moving average
-    datapoints[dpindex] = value;
-    dpindex++;
-}
-
 static void initialise_wifi(void)
 {
     tcpip_adapter_init();
@@ -136,5 +86,6 @@ void app_main()
     chilio_adc_init();
     initialise_wifi();
 
-    xTaskCreate(&read_sensor_task, "read_sensor_task", 4096, NULL, 3, NULL);
+    // TODO: Make a "start" function
+    xTaskCreate(&chilio_adc_read_task, "read_sensor_task", 4096, NULL, 3, NULL);
 }
