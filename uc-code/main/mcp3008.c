@@ -1,0 +1,79 @@
+#include "driver/spi_master.h"
+#include "esp_err.h"
+#include "esp_log.h"
+#include <string.h> // memset
+
+#include "mcp3008.h"
+
+/* Pin definitions, taken from example, any GPIO can be used
+ * AFAIK */
+#define PIN_NUM_MISO   12
+#define PIN_NUM_MOSI   13
+#define PIN_NUM_CLK    14
+#define PIN_NUM_CS0    15
+
+static spi_device_handle_t m_deviceHandle;
+
+static void init_spi_bus(void);
+static void init_mcp3008_dev(void);
+
+void mcp3008_init()
+{
+    init_spi_bus();
+}
+
+static void init_spi_bus(void)
+{
+    spi_bus_config_t busConfig;    
+
+    busConfig.miso_io_num = PIN_NUM_MISO;
+    busConfig.mosi_io_num = PIN_NUM_MOSI;
+    busConfig.sclk_io_num = PIN_NUM_CLK;
+
+    /* Unused pins */
+    busConfig.quadhd_io_num = -1;
+    busConfig.quadwp_io_num = -1;
+
+    /* Max transfer size defaults to 4096, see Docs */
+    busConfig.max_transfer_sz = 0;
+
+    /* Do not use DMA */
+    ESP_ERROR_CHECK(spi_bus_initialize(HSPI_HOST, &busConfig, 0));
+
+}
+
+static void init_mcp3008_dev(void)
+{
+    spi_device_interface_config_t devConfig = {
+          .command_bits       = 2 
+          , .address_bits     = 3
+          , .dummy_bits       = 2
+          , .mode             = 0
+          , .duty_cycle_pos   = 0
+          , .cs_ena_pretrans  = 0
+          , .cs_ena_posttrans = 0
+          , .clock_speed_hz   = SPI_MASTER_FREQ_8M
+          , .spics_io_num    = PIN_NUM_CS0
+          , .flags            = 0
+    };
+
+    ESP_ERROR_CHECK(spi_bus_add_device(HSPI_HOST, &devConfig, &m_deviceHandle));
+}
+
+uint16_t mcp3008_get_raw(uint8_t channel)
+{
+    spi_transaction_t trans;
+    uint16_t buffer = 0; // Buffer to transmit (don't care) and receive
+
+    memset(&trans, 0, sizeof(trans));
+    
+    trans.cmd = 0x03; 
+    trans.addr = channel;
+    trans.length = 10;
+    trans.tx_buffer = (void*)&buffer;
+    trans.rx_buffer = (void*)&buffer;
+    
+    ESP_ERROR_CHECK(spi_device_transmit(m_deviceHandle, &trans));
+   
+    return buffer;
+}

@@ -7,8 +7,8 @@
 #include "freertos/semphr.h"
 #include "driver/gpio.h"
 #include "driver/adc.h"
+#include "mcp3008.h"
 
-#define MAX_CHANNELS 8
 #define N_DATAPOINTS 64
 
 struct SensorReading {
@@ -103,7 +103,7 @@ static uint16_t get_raw(uint8_t channel)
 
     switch(channel) {
         case 0:
-            ret = (uint16_t)(adc1_get_raw(ADC1_CHANNEL_6) & 0xFFFF);
+            ret = mcp3008_get_raw(channel);
         break;
         default:
             ESP_LOGE(TAG, "Invalid channel number %u\n", channel);

@@ -20,6 +20,7 @@
 
 #include "chilio_mqtt.h"
 #include "chilio_adc.h"
+#include "mcp3008.h"
 
 
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
@@ -85,6 +86,7 @@ void app_main()
     ESP_ERROR_CHECK( nvs_flash_init() );
     chilio_adc_init();
     initialise_wifi();
+    mcp3008_init();
 
     // TODO: Make a "start" function
     xTaskCreate(&chilio_adc_read_task, "read_sensor_task", 4096, NULL, 3, NULL);
