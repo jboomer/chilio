@@ -13,6 +13,7 @@
 #define PIN_NUM_CS0    15
 
 static spi_device_handle_t m_deviceHandle;
+static const char* TAG = "MCP3008";
 
 static void init_spi_bus(void);
 static void init_mcp3008_dev(void);
@@ -20,6 +21,8 @@ static void init_mcp3008_dev(void);
 void mcp3008_init()
 {
     init_spi_bus();
+
+    init_mcp3008_dev();
 }
 
 static void init_spi_bus(void)
@@ -45,16 +48,17 @@ static void init_spi_bus(void)
 static void init_mcp3008_dev(void)
 {
     spi_device_interface_config_t devConfig = {
-          .command_bits       = 2 
+          .command_bits       = 5 
           , .address_bits     = 3
-          , .dummy_bits       = 2
+          , .dummy_bits       = 0
           , .mode             = 0
           , .duty_cycle_pos   = 0
           , .cs_ena_pretrans  = 0
           , .cs_ena_posttrans = 0
           , .clock_speed_hz   = SPI_MASTER_FREQ_8M
-          , .spics_io_num    = PIN_NUM_CS0
+          , .spics_io_num     = PIN_NUM_CS0
           , .flags            = 0
+          , .queue_size       = 8
     };
 
     ESP_ERROR_CHECK(spi_bus_add_device(HSPI_HOST, &devConfig, &m_deviceHandle));
@@ -63,17 +67,26 @@ static void init_mcp3008_dev(void)
 uint16_t mcp3008_get_raw(uint8_t channel)
 {
     spi_transaction_t trans;
-    uint16_t buffer = 0; // Buffer to transmit (don't care) and receive
+    uint8_t bufferTx[2] = {0,};
+    uint8_t bufferRx[2] = {0,};
+    uint16_t ret;
 
     memset(&trans, 0, sizeof(trans));
     
     trans.cmd = 0x03; 
     trans.addr = channel;
-    trans.length = 10;
-    trans.tx_buffer = (void*)&buffer;
-    trans.rx_buffer = (void*)&buffer;
+    trans.length = 16;
+    trans.tx_buffer = (void*)&bufferTx;
+    trans.rx_buffer = (void*)&bufferRx;
     
+    ESP_LOGI(TAG, "Getting raw data for channel %u", channel);
+
     ESP_ERROR_CHECK(spi_device_transmit(m_deviceHandle, &trans));
+
+    /* First bit is sample hold, next bit is NULL bit, the B9-B0 */
+    ret = (bufferRx[0] & 0x3F) << 4  | ((bufferRx[1] & 0xF0) >> 4);
+
+    ESP_LOGI(TAG, "Got [%02X] [%02X]", bufferRx[0], bufferRx[1]);
    
-    return buffer;
+    return ret;
 }
